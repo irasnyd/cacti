@@ -1,0 +1,9 @@
+docker-compose.yml
+.dockerignore
+.git
+.gitignore
+LICENSE
+mysql-data
+README.md
+rra
+*.sql.gz

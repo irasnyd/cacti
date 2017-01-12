@@ -1,0 +1,76 @@
+#!/bin/bash
+
+DB_TYPE="${DB_TYPE:-mysql}"
+DB_NAME="${DB_NAME:-cacti}"
+DB_HOST="${DB_HOST:-localhost}"
+DB_USER="${DB_USER:-cactiuser}"
+DB_PASS="${DB_PASS:-cactiuser}"
+DB_PORT="${DB_PORT:-3306}"
+DB_SSL="${DB_SSL:-false}"
+CACTI_SESSION_NAME="${CACTI_SESSION_NAME:-Cacti}"
+
+# database setup
+cat << EOF > /etc/cacti/db.php
+<?php
+\$database_type = "$DB_TYPE";
+\$database_default = "$DB_NAME";
+\$database_hostname = "$DB_HOST";
+\$database_username = "$DB_USER";
+\$database_password = "$DB_PASS";
+\$database_port = "$DB_PORT";
+\$database_ssl = false;
+\$url_path = "/";
+\$cacti_session_name = "$CACTI_SESSION_NAME";
+\$path_cactilog = "/dev/stdout";
+?>
+EOF
+
+# php setup
+cat << EOF > /etc/php.d/timezone.ini
+date.timezone = "Etc/UTC"
+EOF
+
+# httpd setup
+sed -i -e 's:^DocumentRoot.*$:DocumentRoot "/usr/share/cacti":' /etc/httpd/conf/httpd.conf
+sed -i -e 's:logs/error_log:/dev/stderr:' /etc/httpd/conf/httpd.conf
+sed -i -e 's:logs/access_log:/dev/stdout:' /etc/httpd/conf/httpd.conf
+
+cat << EOF > /etc/httpd/conf.d/cacti.conf
+Alias /cacti    /usr/share/cacti
+
+<Directory /usr/share/cacti/>
+	Require all granted
+</Directory>
+
+<Directory /usr/share/cacti/install>
+	# mod_security overrides.
+	# Uncomment these if you use mod_security.
+	# allow POST of application/x-www-form-urlencoded during install
+	#SecRuleRemoveById 960010
+	# permit the specification of the rrdtool paths during install
+	#SecRuleRemoveById 900011
+</Directory>
+
+
+# These sections marked "Require all denied" (or "Deny from all")
+# should not be modified.
+# These are in place in order to harden Cacti.
+<Directory /usr/share/cacti/log>
+	Require all denied
+</Directory>
+<Directory /usr/share/cacti/rra>
+	Require all denied
+</Directory>
+EOF
+
+# crond setup
+sed -i -e 's:^#::' /etc/cron.d/cacti
+
+# directory permissions
+chown -R cacti:cacti /var/lib/cacti/rra
+
+# fix rrdtool pango warnings
+export HOME="/usr/share/cacti"
+
+# run under supervisord
+exec /usr/bin/supervisord -n -c /etc/supervisord.conf
