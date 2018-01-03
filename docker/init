@@ -25,6 +25,9 @@ cat << EOF > /etc/cacti/db.php
 ?>
 EOF
 
+# disable persistent database connections
+sed -i -e '/PDO::ATTR_PERSISTENT/s/true/false/g' /usr/share/cacti/lib/database.php
+
 # php setup
 cat << EOF > /etc/php.d/timezone.ini
 date.timezone = "Etc/UTC"

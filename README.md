@@ -24,6 +24,18 @@ file.
 - `DB_SSL` - Use SSL to connect to database (default: `false`)
 - `CACTI_SESSION_NAME` - Cacti session name (default: `Cacti`)
 
+Database
+========
+
+Cacti requires the following database permissions (grants):
+
+    GRANT ALL PRIVILEGES ON cacti.* TO cacti@'%' IDENTIFIED BY 'cacti';
+    GRANT SELECT ON mysql.time_zone_name TO cacti@'%';
+
+The Cacti source code has been patched to disable persistent connections. This
+change helps Cacti avoid opening too many concurrent connections to the database,
+swamping other user's ability to connect.
+
 Example
 =======
 
